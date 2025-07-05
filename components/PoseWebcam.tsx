@@ -148,7 +148,7 @@ export default function PoseEstimation({ callback, delay }: PoseParameters) {
         shadow="md"
         zIndex={1}
       >
-        {tracking ? "Stop Tracking" : "Start Tracking"}
+        {tracking ? "Stop Tracking" : "Start Tracking!  "}
       </Button>
     </Box>
   );

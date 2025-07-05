@@ -11,8 +11,12 @@ import React, { useRef, useEffect, useState } from "react";
 import PoseWebcam from "@/components/PoseWebcam";
 import setupMediapipe from "@/lib/setup";
 import { AbsoluteCenter, Card, Center, Flex } from "@chakra-ui/react";
+import { createClient } from '@/utils/supabase/client'
+import { redirect } from "next/navigation";
 
 const PoseEstimation = () => {
+  const [userData, setUserData] = useState<any>(null);
+
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -23,6 +27,18 @@ const PoseEstimation = () => {
   );
   const [poseResult, setPoseResult] = useState<number>(0);
   const [imageURL, setImageURL] = useState<string | null>(null);
+
+  // Initialize user data
+  // useEffect(() => {
+  //   (async () => {
+  //     const supabase = createClient();
+  //     const { data, error } = await supabase.auth.getUser();
+  //     if (error || !data?.user) {
+  //       redirect('/login')
+  //     }
+  //     setUserData(data);
+  //   })();
+  // }, [userData]);
 
   // Initialize image imagePoseLandMarker
   useEffect(() => {
