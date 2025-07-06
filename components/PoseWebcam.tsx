@@ -72,6 +72,7 @@ export default function PoseEstimation({ callback, delay }: PoseParameters) {
 
     const video = webcamRef.current.video!;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 

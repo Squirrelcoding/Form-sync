@@ -17,38 +17,39 @@ import Peer from "peerjs";
 import { calculateSimilarity } from "@/lib/measure";
 
 export default function Call({ userInfo }: any) {
-
-    // States relating to the connection 
     const [myId, setMyId] = useState<string>('');
     const [remoteId, setRemoteId] = useState<string>('');
     const [peer, setPeer] = useState<Peer | null>(null);
     const [callActive, setCallActive] = useState(false);
     const [similarity, setSimilarity] = useState<number>(0);
 
-    const poseResultRef = useRef<PoseLandmarkerResult | null>(null);
+    const localPoseResultRef = useRef<PoseLandmarkerResult | null>(null);
 
-    // The canvas that OUR webcam images will be drawn onto
-    const webcamCanvasRef = useRef<HTMLCanvasElement>(null);
-
-    // The canvas that the remote pose results will be drawn onto
+    const localCanvasRef = useRef<HTMLCanvasElement>(null);
     const remoteCanvasRef = useRef<HTMLCanvasElement>(null);
 
-    // The remote video frame
-    const remoteVideoRef = useRef<null | HTMLVideoElement>(null);
+    const localVideoRef = useRef<HTMLVideoElement>(null);
+    const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-    // First do the simple connection stuff
     useEffect(() => {
         const p = new Peer();
         setPeer(p);
 
         p.on('open', (id) => {
-            console.log("HERE");
+            console.log("Peer ID:", id);
             setMyId(id);
         });
 
+        // Handle incoming call
         p.on('call', (call) => {
-            const stream = webcamCanvasRef.current!.captureStream();
-            call.answer(stream);
+            // Use getUserMedia to send real webcam feed
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                }
+                call.answer(stream);
+            });
+
             call.on('stream', (remoteStream) => {
                 if (remoteVideoRef.current) {
                     remoteVideoRef.current.srcObject = remoteStream;
@@ -57,14 +58,16 @@ export default function Call({ userInfo }: any) {
             });
         });
 
+        // Handle incoming data connection for pose
         p.on('connection', (conn) => {
-            const canvas = remoteCanvasRef.current!
+            const canvas = remoteCanvasRef.current!;
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
+
             conn.on('data', (data) => {
                 const result = data as PoseLandmarkerResult;
-                if (poseResultRef.current && result.landmarks.length > 0) {
-                    setSimilarity(calculateSimilarity(result.landmarks[0], poseResultRef.current.landmarks[0]));
+                if (localPoseResultRef.current && result.landmarks.length > 0) {
+                    setSimilarity(calculateSimilarity(result.landmarks[0], localPoseResultRef.current.landmarks[0]));
                 }
                 drawResult(result, canvas, ctx);
             });
@@ -78,8 +81,13 @@ export default function Call({ userInfo }: any) {
     const startCall = () => {
         if (!remoteId || !peer) return;
 
-        // 1. Start media call
+        // Start local webcam
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = stream;
+            }
+
+            // Start media call
             const call = peer.call(remoteId, stream);
             call.on('stream', (remoteStream) => {
                 if (remoteVideoRef.current) {
@@ -89,35 +97,29 @@ export default function Call({ userInfo }: any) {
             });
         });
 
-        // 2. Open data connection for pose results
+        // Start data channel for pose results
         const conn = peer.connect(remoteId);
-
         conn.on('open', () => {
             console.log("Data channel open");
 
             const sendInterval = setInterval(() => {
-                if (!poseResultRef.current) return;
+                if (!localPoseResultRef.current) return;
+                conn.send(localPoseResultRef.current);
+            }, 100);
 
-                conn.send(poseResultRef.current);
-            }, 500);
-
-            // Optional: clear interval when connection closes
             conn.on('close', () => clearInterval(sendInterval));
         });
     };
 
-
-
-    const callback = (result: PoseLandmarkerResult) => {
-        const canvas = webcamCanvasRef.current!;
+    const poseCallback = (result: PoseLandmarkerResult) => {
+        const canvas = localCanvasRef.current!;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        poseResultRef.current = result;
+        localPoseResultRef.current = result;
     }
 
     return (
         <Flex direction="column" minH="100vh" p={4}>
-            {/* Video Call Section */}
             <Flex gap={6} wrap="wrap" justify="center" flex={1}>
                 {/* Local Video Card */}
                 <Card.Root flex="1" minW="300px" maxW="600px">
@@ -125,7 +127,16 @@ export default function Call({ userInfo }: any) {
                         <Heading size="md">Local Video</Heading>
                     </Card.Header>
                     <Card.Body>
-                        <PoseWebCam callback={callback} delay={0} />
+                        <video 
+                            ref={localVideoRef} 
+                            autoPlay 
+                            playsInline 
+                            width="100%" 
+                            height="auto" 
+                            style={{ borderRadius: "8px", marginBottom: "8px", display: 'none' }}
+                        />
+                        <PoseWebCam callback={poseCallback} delay={0} />
+                        <canvas ref={localCanvasRef} width={640} height={480} style={{ display: 'none' }}></canvas>
                     </Card.Body>
                 </Card.Root>
 
@@ -135,20 +146,19 @@ export default function Call({ userInfo }: any) {
                         <Heading size="md">Remote Video</Heading>
                     </Card.Header>
                     <Card.Body>
-                        <Box
-                            as="video"
-                            ref={remoteVideoRef}
-                            // autoPlay={true}
-                            // playsInline
-                            width="100%"
-                            height="auto"
-                            borderRadius="md"
+                        <video 
+                            ref={remoteVideoRef} 
+                            autoPlay 
+                            playsInline 
+                            width="100%" 
+                            height="auto" 
+                            style={{ borderRadius: "8px", marginBottom: "8px" }}
                         />
+                        <canvas ref={remoteCanvasRef} width={640} height={480} style={{ border: "1px solid #ccc" }}></canvas>
                     </Card.Body>
                 </Card.Root>
             </Flex>
 
-            {/* Controls and Info Section */}
             <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" boxShadow="md">
                 <Flex align="center" gap={4} mb={4}>
                     <Text fontWeight="bold">Your ID:</Text>
@@ -182,7 +192,6 @@ export default function Call({ userInfo }: any) {
         </Flex>
     );
 }
-
 
 const drawResult = (result: PoseLandmarkerResult, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);

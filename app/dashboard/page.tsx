@@ -48,7 +48,7 @@ export default async function PrivatePage() {
           </Card.Body>
           <Card.Footer>
             <Button color="white" bg="#3182ce">
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/call ">Start call</Link>
             </Button>
           </Card.Footer>
         </Card.Root>
