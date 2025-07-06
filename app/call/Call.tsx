@@ -188,7 +188,6 @@ export default function Call({ userInfo }: any) {
                     Similarity: <strong>{similarity.toFixed(2)}</strong>
                 </Text>
             </Box>
-            <p>HIGWEJUOFGIKERWUJHJNTFEIRKG: {userInfo.user.email}</p>
         </Flex>
     );
 }

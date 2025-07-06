@@ -13,9 +13,13 @@ import setupMediapipe from "@/lib/setup";
 import { AbsoluteCenter, Card, Center, Flex } from "@chakra-ui/react";
 import { createClient } from '@/utils/supabase/client'
 import { redirect } from "next/navigation";
+import io from 'socket.io-client';
+import { User } from "@supabase/supabase-js";
 
 const PoseEstimation = () => {
-  const [userData, setUserData] = useState<any>(null);
+
+  const [userData, setUserData] = useState<User | null>(null);
+  const [startTime, setStartTime] = useState<number>(Date.now());
 
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,22 +33,61 @@ const PoseEstimation = () => {
   const [imageURL, setImageURL] = useState<string | null>(null);
 
   // Initialize user data
-  // useEffect(() => {
-  //   (async () => {
-  //     const supabase = createClient();
-  //     const { data, error } = await supabase.auth.getUser();
-  //     if (error || !data?.user) {
-  //       redirect('/login')
-  //     }
-  //     setUserData(data);
-  //   })();
-  // }, [userData]);
+  useEffect(() => {
+    if (userData) return;
+    (async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user) {
+        redirect('/login')
+      }
+      console.log(data);
+      setUserData(data.user);
+    })();
+  }, []);
 
   // Initialize image imagePoseLandMarker
   useEffect(() => {
     setupMediapipe(setImagePoseLandMarker, "IMAGE");
     return () => {
       setImagePoseLandMarker(null);
+    };
+  }, []);
+
+  // Initialize a connection to the database to record the workout
+  useEffect(() => {
+    if (!userData || !imageURL) return;
+    const supabase = createClient();
+
+    const socket = io();
+    console.log("CONNECTING");
+
+    socket.on('disconnect', async () => {
+      const { error } = await supabase
+        .from('workouts')
+        .update({
+          length: Date.now() - startTime
+        }).eq('client_id', userData.id)
+      console.log(error);
+    });
+
+    socket.on('connect', async () => {
+      console.log('connected', socket.id);
+      const { error } = await supabase
+        .from('workouts')
+        .insert({
+          workout_id: crypto.randomUUID(),
+          client_id: userData.id,
+          coach_id: userData.id,
+          start_time: new Date().toISOString(),
+          length: 0.0,
+          type: "IMAGE_SINGLE",
+        });
+      console.log(error);
+    });
+
+    return () => {
+      socket.disconnect();
     };
   }, []);
 
@@ -83,6 +126,8 @@ const PoseEstimation = () => {
 
     const url = URL.createObjectURL(file);
     setImageURL(url);
+
+    // Start a new workout in the database
   };
 
   return (
