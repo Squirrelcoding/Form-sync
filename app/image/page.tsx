@@ -67,29 +67,32 @@ const PoseEstimation = () => {
         .from('workouts')
         .update({
           length: Date.now() - startTime
-        }).eq('client_id', userData.id)
-      console.log(error);
+        }).eq('client_id', userData.id);
     });
 
     socket.on('connect', async () => {
       console.log('connected', socket.id);
+      const workout_id = crypto.randomUUID();
+      const start_time = new Date().toISOString();
       const { error } = await supabase
         .from('workouts')
         .insert({
-          workout_id: crypto.randomUUID(),
+          workout_id,
           client_id: userData.id,
           coach_id: userData.id,
-          start_time: new Date().toISOString(),
-          length: 0.0,
+          start_time,
+          end_time: null,
           type: "IMAGE_SINGLE",
         });
-      console.log(error);
+
+      // Send the workout ID to the server
+      socket.emit("recieve", {workout_id, start_time});
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [imageURL]);
 
   const callback = (result: PoseLandmarkerResult) => {
     const canvas = canvasRef.current!;
