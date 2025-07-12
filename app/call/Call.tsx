@@ -8,6 +8,7 @@ import {
     Input,
     Button,
     Card,
+    Center,
 } from "@chakra-ui/react";
 
 import { DrawingUtils, PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
@@ -119,7 +120,9 @@ export default function Call({ userInfo }: any) {
     }
 
     return (
-        <Flex direction="column" minH="100vh" p={4}>
+        <>
+            {callActive && <Flex direction="column" minH="100vh" p={4}>
+                {callActive && <p>Hi!</p>}
             <Flex gap={6} wrap="wrap" justify="center" flex={1}>
                 {/* Local Video Card */}
                 <Card.Root flex="1" minW="300px" maxW="600px">
@@ -153,22 +156,34 @@ export default function Call({ userInfo }: any) {
                             width="100%" 
                             height="auto" 
                             style={{ borderRadius: "8px", marginBottom: "8px" }}
+                                hidden={true}
                         />
                         <canvas ref={remoteCanvasRef} width={640} height={480} style={{ border: "1px solid #ccc" }}></canvas>
                     </Card.Body>
                 </Card.Root>
             </Flex>
 
-            <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" boxShadow="md">
-                <Flex align="center" gap={4} mb={4}>
-                    <Text fontWeight="bold">Your ID:</Text>
+                <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" boxShadow="md">
+
+
+                    <Text>
+                        Similarity: <strong>{similarity.toFixed(2)}</strong>
+                    </Text>
+                </Box>
+            </Flex>}
+            {!callActive && <Center h="100vh">
+                <Card.Root>
+                    <Card.Body>
+                        <Flex align="center" gap={4} mb={4}>
+                    <Text fontWeight="bold">To start a call, share your ID:</Text>
                     <Text>{myId}</Text>
                     <Button size="sm" onClick={() => navigator.clipboard.writeText(myId)}>
                         Copy
                     </Button>
-                </Flex>
-
+                        </Flex>
                 <Flex align="center" gap={4} mb={4} wrap="wrap">
+                    <Text fontWeight="bold">To join a call, enter an ID:</Text>
+
                     <Input
                         placeholder="Enter remote peer ID"
                         value={remoteId}
@@ -183,12 +198,10 @@ export default function Call({ userInfo }: any) {
                         {callActive ? "Call Active" : "Start Call"}
                     </Button>
                 </Flex>
-
-                <Text>
-                    Similarity: <strong>{similarity.toFixed(2)}</strong>
-                </Text>
-            </Box>
-        </Flex>
+                    </Card.Body>
+                </Card.Root>
+            </Center>}
+        </>
     );
 }
 

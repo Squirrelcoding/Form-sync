@@ -129,8 +129,6 @@ const PoseEstimation = () => {
 
     const url = URL.createObjectURL(file);
     setImageURL(url);
-
-    // Start a new workout in the database
   };
 
   return (
