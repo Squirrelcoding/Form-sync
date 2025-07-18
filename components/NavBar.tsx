@@ -10,6 +10,7 @@ const navItems = [
     { name: "Leaderboards", href: "/leaderboards" },
     { name: "Workouts", href: "/workouts" },
     { name: "Chat", href: "/chat" },
+    { name: "Settings", href: "/settings" },
 ];
 
 const Navbar = () => {
