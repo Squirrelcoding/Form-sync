@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/client";
 import { Button, Flex, Card, Text } from "@chakra-ui/react";
 import Link from "next/link";
 import { User } from "@supabase/supabase-js";
+import DailyProgress from "@/components/DailyProgress/DailyProgress";
 
 export default function PrivatePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -70,6 +71,13 @@ export default function PrivatePage() {
           </Card.Footer>
         </Card.Root>
       </Flex>
+        <Card.Root>
+          <Card.Header>Your Daily Progress</Card.Header>
+          <Card.Body>
+            <DailyProgress days={[1, 2]} />
+          </Card.Body>
+          <Card.Footer />
+        </Card.Root>
     </>
   );
 }
